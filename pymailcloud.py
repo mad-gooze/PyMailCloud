@@ -3,8 +3,6 @@
 import requests
 import urlparse
 import re
-import time
-import json
 
 __version__ = "0.1"
 
@@ -119,8 +117,38 @@ class PyMailCloud:
             # wtf?
             raise Exception("Unknown error " + str(response.status_code) + ": " + response.text)
 
-    def remove_public_link(self):
-        raise Exception("Not implemented")
+    def remove_public_link(self, weblink):
+
+        remove_from_start = [
+            "https://cloud.mail.ru/public/",
+            "http://cloud.mail.ru/public/",
+            "cloud.mail.ru/public/"
+        ]
+        for s in remove_from_start:
+            if weblink.startswith(s):
+                weblink = weblink[len(s):]
+                break
+
+        response = requests.post("https://cloud.mail.ru/api/v2/file/unpublish",
+            headers={
+                "User-Agent": self.user_agent,
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+            },
+            cookies={
+                "Mpop": self.Mpop
+            },
+            data={
+                "weblink": weblink,
+                "token": self.token
+            }
+        )
+        if response.status_code == 200:
+            pass
+        elif response.status_code == 404:
+            raise Exception("File not found")
+        else:
+            # wtf?
+            raise Exception("Unknown error " + str(response.status_code) + ": " + response.text)
 
     def download_file(self):
         raise Exception("Not implemented")
