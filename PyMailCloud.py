@@ -15,7 +15,6 @@ class PyMailCloudError(Exception):
         def __init__(self, message="Login or password is incorrect"):
             super(PyMailCloudError.AuthError, self).__init__(message)
 
-
     class NetworkError(Exception):
         def __init__(self, message="Connection failed"):
             super(PyMailCloudError.NetworkError, self).__init__(message)
@@ -41,13 +40,13 @@ class PyMailCloud:
 
     def __init__(self, login, password):
 
-        self.Mpop = None
+        self.mpop = None
         self.token = None
 
         self.login = login
         self.password = password
 
-        self.user_agent = "PyMailCloud/(" + __version__ + ")"
+        self.user_agent = "PyMailCloud/({})".format(__version__)
 
         self.__recreate_tokens()
 
@@ -62,7 +61,6 @@ class PyMailCloud:
                 "Password": self.password
             }
         )
-
 
         # success?
         if response.status_code == requests.codes.ok and response.history:
@@ -85,7 +83,7 @@ class PyMailCloud:
                         token = str(result[1])
                 if token and "Mpop" in cookies_response.cookies and "t" in cookies_response.cookies:
                     # save cookies for later use
-                    self.Mpop = cookies_response.cookies["Mpop"]
+                    self.mpop = cookies_response.cookies["Mpop"]
                     self.token = token
 
         else:
@@ -101,7 +99,7 @@ class PyMailCloud:
                 "User-Agent": self.user_agent
             },
             cookies={
-                "Mpop": self.Mpop
+                "Mpop": self.mpop
             }
         )
 
@@ -126,7 +124,7 @@ class PyMailCloud:
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
             },
             cookies={
-                "Mpop": self.Mpop
+                "Mpop": self.mpop
             },
             data={
                 "home": filename,
@@ -147,7 +145,7 @@ class PyMailCloud:
             raise PyMailCloudError.PublicLinksExceededError()
         else:
             # wtf?
-            raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
+            raise PyMailCloudError.UnknownError("{0}: {1}".format(response.status_code, response.text))
 
     def remove_public_link(self, weblink):
 
@@ -167,7 +165,7 @@ class PyMailCloud:
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
             },
             cookies={
-                "Mpop": self.Mpop
+                "Mpop": self.mpop
             },
             data={
                 "weblink": weblink,
@@ -180,7 +178,7 @@ class PyMailCloud:
             raise PyMailCloudError.NotFoundError("File not found")
         else:
             # wtf?
-            raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
+            raise PyMailCloudError.UnknownError("{0}: {1}".format(response.status_code, response.text))
 
     def download_file(self):
         raise PyMailCloudError.NotImplementedError()
