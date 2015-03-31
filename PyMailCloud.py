@@ -6,6 +6,37 @@ import re
 
 __version__ = "0.1"
 
+
+class PyMailCloudError(Exception):
+    pass
+
+    class AuthError(Exception):
+
+        def __init__(self, message="Login or password is incorrect"):
+            super(PyMailCloudError.AuthError, self).__init__(message)
+
+
+    class NetworkError(Exception):
+        def __init__(self, message="Connection failed"):
+            super(PyMailCloudError.NetworkError, self).__init__(message)
+
+    class NotFoundError(Exception):
+        def __init__(self, message="File not found"):
+            super(PyMailCloudError.NotFoundError, self).__init__(message)
+
+    class PublicLinksExceededError(Exception):
+        def __init__(self, message="Public links number exceeded"):
+            super(PyMailCloudError.PublicLinksExceededError, self).__init__(message)
+
+    class UnknownError(Exception):
+        def __init__(self, message="WTF is going on?"):
+            super(PyMailCloudError.UnknownError, self).__init__(message)
+
+    class NotImplementedError(Exception):
+        def __init__(self, message="The developer wants to sleep"):
+            super(PyMailCloudError.NotImplementedError, self).__init__(message)
+
+
 class PyMailCloud:
 
     def __init__(self, login, password):
@@ -40,7 +71,7 @@ class PyMailCloud:
             params = urlparse.parse_qs(parsed)
 
             if "fail" in params:
-                raise Exception("Login or password is incorrect")
+                raise PyMailCloudError.AuthError()
             else:
                 cookies_response = response.history[0]
 
@@ -53,11 +84,12 @@ class PyMailCloud:
                     if len(result) == 2:
                         token = str(result[1])
                 if token and "Mpop" in cookies_response.cookies and "t" in cookies_response.cookies:
+                    # save cookies for later use
                     self.Mpop = cookies_response.cookies["Mpop"]
                     self.token = token
 
         else:
-            raise Exception("Failed to connect")
+            raise PyMailCloudError.NetworkError()
 
     def get_folder_contents(self, folder):
         response = requests.get("https://cloud.mail.ru/api/v2/folder",
@@ -81,10 +113,10 @@ class PyMailCloud:
             self.__recreate_tokens()
             return self.get_folder_contents(folder)
         elif response.status_code == 404:
-            raise Exception("Folder not found")
+            raise PyMailCloudError.NotFoundError("Folder not found")
         else:
             # wtf?
-            raise Exception("Unknown error " + str(response.status_code) + ": " + response.text)
+            raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
 
     def get_public_link(self, filename):
 
@@ -110,12 +142,12 @@ class PyMailCloud:
             self.__recreate_tokens()
             return self.get_public_link(filename)
         elif response.status_code == 404:
-            raise Exception("File not found")
+            raise PyMailCloudError.NotFoundError("File not found")
         elif response.status_code == 507:
-            raise Exception("Public links number exceeded")
+            raise PyMailCloudError.PublicLinksExceededError()
         else:
             # wtf?
-            raise Exception("Unknown error " + str(response.status_code) + ": " + response.text)
+            raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
 
     def remove_public_link(self, weblink):
 
@@ -145,12 +177,13 @@ class PyMailCloud:
         if response.status_code == 200:
             pass
         elif response.status_code == 404:
-            raise Exception("File not found")
+            raise PyMailCloudError.NotFoundError("File not found")
         else:
             # wtf?
-            raise Exception("Unknown error " + str(response.status_code) + ": " + response.text)
+            raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
 
     def download_file(self):
-        raise Exception("Not implemented")
+        raise PyMailCloudError.NotImplementedError()
+
     def upload_file(self):
-        raise Exception("Not implemented")
+        raise PyMailCloudError.NotImplementedError()
