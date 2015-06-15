@@ -21,4 +21,4 @@ Returns full public URL of file (looks like "https://cloud.mail.ru/public/\<id\>
 
 Deletes public file link by its *weblink*, which can be full ("http(s)://cloud.mail.ru/public/\<id\>/\<filename\>") or short (just "\<id\>/\<filename\>")
 
-Returns full public URL of file, or rises an exception in case of error.
+Rises an exception in case of error.
