@@ -54,18 +54,11 @@ class PyMailCloud:
                                      )
         # success?
         if loginResponse.status_code == requests.codes.ok and loginResponse.history:
-            for val in loginResponse.history:
-                print(val.url)
-                print(val.cookies)
-                print(val.content)
-
             getTokenResponse = self.session.post("https://cloud.mail.ru/api/v2/tokens/csrf")
-            print(getTokenResponse.url)
-            print(getTokenResponse.cookies)
-            print(getTokenResponse.content)
             if getTokenResponse.status_code is not 200:
                 raise PyMailCloudError.UnknownError
             self.token = json.loads(getTokenResponse.content.decode("utf-8"))['body']['token']
+            print('Login successful')
         else:
             raise PyMailCloudError.NetworkError()
 
