@@ -1,7 +1,11 @@
 #!/usr/bin/python
-
+import os
+import re
+import errno
 import requests
 import json
+
+from tqdm import tqdm
 
 __version__ = "0.2"
 
@@ -42,16 +46,28 @@ class PyMailCloud:
         self.session.headers.update({'User-Agent': self.user_agent})
         self.login = login
         self.password = password
+        self.downloadSource = None
         self.__recreate_token()
+
+    def __get_download_source(self):
+        dispatcher = self.session.get('https://cloud.mail.ru/api/v2/dispatcher',
+                                      params={
+                                          "token": self.token
+                                      }, )
+        if dispatcher.status_code is not 200:
+            raise PyMailCloudError.NetworkError
+        # print(json.loads(dispatcher.content.decode("utf-8")))
+        self.downloadSource = json.loads(dispatcher.content.decode("utf-8"))['body']['get'][0]['url']
+        print('Download source: {}'.format(self.downloadSource))
 
     def __recreate_token(self):
         loginResponse = self.session.post("https://auth.mail.ru/cgi-bin/auth",
-                                     data={
-                                         "page": "http://cloud.mail.ru/",
-                                         "Login": self.login,
-                                         "Password": self.password
-                                     },
-                                     )
+                                          data={
+                                              "page": "http://cloud.mail.ru/",
+                                              "Login": self.login,
+                                              "Password": self.password
+                                          },
+                                          )
         # success?
         if loginResponse.status_code == requests.codes.ok and loginResponse.history:
             getTokenResponse = self.session.post("https://cloud.mail.ru/api/v2/tokens/csrf")
@@ -59,8 +75,34 @@ class PyMailCloud:
                 raise PyMailCloudError.UnknownError
             self.token = json.loads(getTokenResponse.content.decode("utf-8"))['body']['token']
             print('Login successful')
+            self.__get_download_source()
         else:
             raise PyMailCloudError.NetworkError()
+
+    def get_subfolders(self, folder):
+        folderlist = []
+        foldercount = 0
+        foldercountlast = 0
+        run = True
+        rootFolderContents = json.loads(self.get_folder_contents(folder))
+        print('Listing directory {}'.format(folder))
+        folderlist.append(folder)
+        if rootFolderContents['body']['count']['folders'] == 0:
+            run = False
+        while run:
+            for e in rootFolderContents['body']['list']:
+                if 'count' in e and e['count']['folders'] == 0 or rootFolderContents['body']['count']['folders'] == 0:
+                    run = False
+                if e['type'] == 'folder':
+                    list = self.get_subfolders(e['home'])
+                    for f in list:
+                        folderlist.append(f)
+                    foldercount += 1
+                if foldercount == foldercountlast:
+                    run = False
+                else:
+                    foldercountlast = foldercount
+        return folderlist
 
     def get_folder_contents(self, folder):
         response = self.session.get("https://cloud.mail.ru/api/v2/folder",
@@ -68,31 +110,39 @@ class PyMailCloud:
                                         "home": folder,
                                         "token": self.token
                                     },
-                                    headers={
-                                        "User-Agent": self.user_agent
-                                    },
-
                                     )
 
         if response.status_code == 200:
             # ok!
-            return json.dumps(response.json(), sort_keys=True, indent=4, ensure_ascii=False)
+            return json.dumps(response.json(), sort_keys=True, indent=3, ensure_ascii=False)
         elif response.status_code == 403:
             # tokens seem to expire
             print("Got HTTP 403 on listing folder contents, retrying...")
             self.__recreate_token()
             return self.get_folder_contents(folder)
-        elif response.status_code == 404:
-            raise PyMailCloudError.NotFoundError("Folder not found")
+        elif response.status_code == (400 or 404):
+            raise PyMailCloudError.NotFoundError("File or folder not found")
         else:
             # wtf?
             raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
+
+    def download_folder_content(self, folder):
+        folderlist = self.get_subfolders(folder)
+        filedownloadlist = []
+        for f in folderlist:
+            metadata = json.loads(self.get_folder_contents(f))
+            if metadata['body']['count']['files'] == 0:
+                break
+            # metadata = list((filemeta for filemeta in metadataList['body']['list'] if filemeta['home'] == file))[0]
+
+            for file in list((file for file in metadata['body']['list'] if file['type'] == 'file')):
+                filedownloadlist.append(file['home'])
+            self.download_files(filedownloadlist)
 
     def get_public_link(self, filename):
 
         response = self.session.post("https://cloud.mail.ru/api/v2/file/publish",
                                      headers={
-                                         "User-Agent": self.user_agent,
                                          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
                                      },
                                      data={
@@ -130,7 +180,6 @@ class PyMailCloud:
 
         response = self.session.post("https://cloud.mail.ru/api/v2/file/unpublish",
                                      headers={
-                                         "User-Agent": self.user_agent,
                                          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
                                      },
                                      data={
@@ -146,8 +195,31 @@ class PyMailCloud:
             # wtf?
             raise PyMailCloudError.UnknownError("{0}: {1}".format(response.status_code, response.text))
 
-    def download_file(self):
-        raise PyMailCloudError.NotImplementedError()
+    def download_files(self, filenamelist):
+        for file in filenamelist:
+            response = self.session.get(self.downloadSource[:-1] + file,
+                                        stream=True)
+            if response.status_code == 404:
+                raise PyMailCloudError.NotFoundError("File not found")
+
+            print("Getting metadata for file {}".format(file))
+            metadataList = json.loads(self.get_folder_contents(file))
+            metadata = list((filemeta for filemeta in metadataList['body']['list'] if filemeta['home'] == file))[0]
+
+            print('Downloading "{}"'.format(file))
+            # remove leading slash
+            file = re.sub(r"^\/", './', file)
+
+            if not os.path.exists(os.path.dirname(file)):
+                try:
+                    os.makedirs(os.path.dirname(file))
+                except OSError as exc:  # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+            with open(file, "wb") as handle:
+                for data in tqdm(response.iter_content(chunk_size=1024), unit='KB', total=int(metadata['size'] / 1024)):
+                    handle.write(data)
+            print('')
 
     def upload_file(self):
         raise PyMailCloudError.NotImplementedError()
