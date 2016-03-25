@@ -56,7 +56,7 @@ class PyMailCloud:
                                       }, )
         if dispatcher.status_code is not 200:
             raise PyMailCloudError.NetworkError
-        #print(json.loads(dispatcher.content.decode("utf-8")))
+        # print(json.loads(dispatcher.content.decode("utf-8")))
         self.downloadSource = json.loads(dispatcher.content.decode("utf-8"))['body']['get'][0]['url']
         print('Download source: {}'.format(self.downloadSource))
 
@@ -81,8 +81,8 @@ class PyMailCloud:
 
     def get_subfolders(self, folder):
         folderlist = []
-        listlen = 0
-        listlenlast = 0
+        foldercount = 0
+        foldercountlast = 0
         run = True
         rootFolderContents = json.loads(self.get_folder_contents(folder))
         print('Listing directory {}'.format(folder))
@@ -94,17 +94,14 @@ class PyMailCloud:
                 if 'count' in e and e['count']['folders'] == 0 or rootFolderContents['body']['count']['folders'] == 0:
                     run = False
                 if e['type'] == 'folder':
-                    #folderlist.append(e['home'])
-                    #folderlist.append(self.get_subfolders(e['home']))
                     list = self.get_subfolders(e['home'])
                     for f in list:
                         folderlist.append(f)
-                    listlen += 1
-#                listlen = len(folderlist)
-                if listlen == listlenlast:
+                    foldercount += 1
+                if foldercount == foldercountlast:
                     run = False
                 else:
-                    listlenlast = listlen
+                    foldercountlast = foldercount
         return folderlist
 
     def get_folder_contents(self, folder):
@@ -123,18 +120,29 @@ class PyMailCloud:
             print("Got HTTP 403 on listing folder contents, retrying...")
             self.__recreate_token()
             return self.get_folder_contents(folder)
-        elif response.status_code == 404:
-            raise PyMailCloudError.NotFoundError("Folder not found")
+        elif response.status_code == (400 or 404):
+            raise PyMailCloudError.NotFoundError("File or folder not found")
         else:
             # wtf?
             raise PyMailCloudError.UnknownError(str(response.status_code) + ": " + response.text)
 
+    def download_folder_content(self, folder):
+        folderlist = self.get_subfolders(folder)
+        filedownloadlist = []
+        for f in folderlist:
+            metadata = json.loads(self.get_folder_contents(f))
+            if metadata['body']['count']['files'] == 0:
+                break
+            # metadata = list((filemeta for filemeta in metadataList['body']['list'] if filemeta['home'] == file))[0]
+
+            for file in list((file for file in metadata['body']['list'] if file['type'] == 'file')):
+                filedownloadlist.append(file['home'])
+            self.download_files(filedownloadlist)
 
     def get_public_link(self, filename):
 
         response = self.session.post("https://cloud.mail.ru/api/v2/file/publish",
                                      headers={
-                                         "User-Agent": self.user_agent,
                                          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
                                      },
                                      data={
@@ -172,7 +180,6 @@ class PyMailCloud:
 
         response = self.session.post("https://cloud.mail.ru/api/v2/file/unpublish",
                                      headers={
-                                         "User-Agent": self.user_agent,
                                          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
                                      },
                                      data={
@@ -191,14 +198,13 @@ class PyMailCloud:
     def download_files(self, filenamelist):
         for file in filenamelist:
             response = self.session.get(self.downloadSource[:-1] + file,
-                                        data={"x-email": self.login}, stream=True)
+                                        stream=True)
             if response.status_code == 404:
                 raise PyMailCloudError.NotFoundError("File not found")
 
             print("Getting metadata for file {}".format(file))
             metadataList = json.loads(self.get_folder_contents(file))
             metadata = list((filemeta for filemeta in metadataList['body']['list'] if filemeta['home'] == file))[0]
-
 
             print('Downloading "{}"'.format(file))
             # remove leading slash
@@ -214,8 +220,6 @@ class PyMailCloud:
                 for data in tqdm(response.iter_content(chunk_size=1024), unit='KB', total=int(metadata['size'] / 1024)):
                     handle.write(data)
             print('')
-    def download_all_data(self):
-        files = self.get_folder_contents('/')
 
     def upload_file(self):
         raise PyMailCloudError.NotImplementedError()
