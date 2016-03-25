@@ -27,12 +27,18 @@ Deletes public file link by its *weblink*, which can be full ("http(s)://cloud.m
 
 Rises an exception in case of error.
 
+### PyMailCloud.get_subfolders(folder)
+*folder* - folder path relative to cloud home
+
+Traverses the given folder and returns a list of its subfolders (including the folder itself)
+
+
 ### PyMailCloud.download_folder_content(folder)
 *folder* - folder path relative to cloud home
 
-Downloads all files inside the folder or nested folders. Currently files are downloaded to the working path of the script respectively to their path inside the cloud
+Downloads all files inside the folder or nested folders. Currently files are downloaded to the working path of the script respectively to their path inside the cloud.
 
 ### PyMailCloud.download_files(filenamelist)
 *filenamelist* - list of files that should be downloaded
 
-Downloads all files inside the list. Currently files are downloaded to the working path of the script respectively to their path inside the cloud
+Downloads all files inside the list. Currently files are downloaded to the working path of the script respectively to their path inside the cloud.
