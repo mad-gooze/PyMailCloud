@@ -32,13 +32,18 @@ Rises an exception in case of error.
 
 Traverses the given folder and returns a list of its subfolders (including the folder itself)
 
+Rises an exception if the folder is not found
 
 ### PyMailCloud.download_folder_content(folder)
 *folder* - folder path relative to cloud home
 
 Downloads all files inside the folder or nested folders. Currently files are downloaded to the working path of the script respectively to their path inside the cloud.
 
+Rises an exception if the folder is not found
+
 ### PyMailCloud.download_files(filenamelist)
 *filenamelist* - list of files that should be downloaded
 
 Downloads all files inside the list. Currently files are downloaded to the working path of the script respectively to their path inside the cloud.
+
+Rises an exception if a file is not found
