@@ -251,22 +251,16 @@ class PyMailCloud:
                 callback=lambda monitor: self.upload_callback(monitor, progress))
             upload_response = self.session.post(self.uploadTarget, data=monitor,
                               headers={'Content-Type': monitor.content_type})
-            #print(upload_response.content)
-            '''
+            if upload_response.status_code is not 200:
+                raise PyMailCloudError.NetworkError
+
+            hash, filesize = upload_response.content.decode("utf-8").split(';')[0], upload_response.content.decode("utf-8").split(';')[1][:-2]
             response = self.session.post("https://cloud.mail.ru/api/v2/file/add",  # "http://httpbin.org/post",
-                                         headers={
-                                             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                             # 'token': self.token
-                                         },
                                          data={
                                              "token": self.token,
                                              "home": destination,
-                                             "email": self.login,
-                                             "x-email": self.login,
-                                         },
-                                         files=files)
-            print(response.request.headers)
-            print(response.request.body)
-            print(response.content)
-            print('a')
-            '''
+                                             "conflict": 'rename',
+                                             "hash": hash,
+                                             "size": filesize,
+                                         })
+            return json.dumps(response.json(), sort_keys=True, indent=3, ensure_ascii=False)
