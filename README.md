@@ -1,6 +1,10 @@
 # PyMailCloud
 Unofficial python library for making API requests to [Cloud@Mail.ru](http://cloud.mail.ru/)
 
+## Requirements
+* `requests`
+* `tqdm`
+
 ## Supported methods
 
 ### PyMailCloud(login, password)
