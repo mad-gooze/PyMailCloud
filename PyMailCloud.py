@@ -235,16 +235,18 @@ class PyMailCloud:
         progress.update(8192)
         pass
 
-    def upload_files(self, fileslist, path=None):
+    def upload_files(self, fileslist):
+        path = ''
         progress = tqdm(unit='B')
         for file in fileslist:
-            progress.desc = file
-            f = open(file, 'rb')
+            progress.desc = file['filename']
+            f = open(file['filename'], 'rb')
             files = {'file': f}
 
-            if not path: path = '/'
-            destination = path + os.path.basename(file)
-            if os.path.getsize(file) > 1024 * 1024 * 1024 * 2:
+            if 'path' not in file: path = '/'
+            else: path = file['path']
+            destination = path + os.path.basename(file['filename'])
+            if os.path.getsize(file['filename']) > 1024 * 1024 * 1024 * 2:
                 raise PyMailCloudError.FileSizeError
             monitor = MultipartEncoderMonitor.from_fields(
                 fields={'file': ('filename', f, 'application/octet-stream')},
