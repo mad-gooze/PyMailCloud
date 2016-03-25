@@ -26,3 +26,13 @@ Returns full public URL of file (looks like "https://cloud.mail.ru/public/\<id\>
 Deletes public file link by its *weblink*, which can be full ("http(s)://cloud.mail.ru/public/\<id\>/\<filename\>") or short (just "\<id\>/\<filename\>")
 
 Rises an exception in case of error.
+
+### PyMailCloud.download_folder_content(folder)
+*folder* - folder path relative to cloud home
+
+Downloads all files inside the folder or nested folders. Currently files are downloaded to the working path of the script respectively to their path inside the cloud
+
+### PyMailCloud.download_files(filenamelist)
+*filenamelist* - list of files that should be downloaded
+
+Downloads all files inside the list. Currently files are downloaded to the working path of the script respectively to their path inside the cloud
