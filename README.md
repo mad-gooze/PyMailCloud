@@ -3,8 +3,8 @@ Unofficial python library for making API requests to [Cloud@Mail.ru](http://clou
 
 ## Requirements
 * `requests`
+* `requests_toolbelt`
 * `tqdm`
-
 ## Supported methods
 
 ### PyMailCloud(login, password)
