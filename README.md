@@ -47,3 +47,13 @@ Rises an exception if the folder is not found
 Downloads all files inside the list. Currently files are downloaded to the working path of the script respectively to their path inside the cloud.
 
 Rises an exception if a file is not found
+
+### PyMailCloud.upload_files(filenamelist)
+*filenamelist* - list of dicts containing 'filename' and optionally 'path' if file should be uploaded to specific path. Directories will be created automatically
+
+Upload all files inside the list. Files should be passed with the full path inside the system.
+
+Returns the JSON response from the cloud
+Rises an exception if a file is larger than 2 GB
+TODO: Check for quota before uploading
+
