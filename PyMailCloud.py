@@ -4,6 +4,7 @@ import re
 import errno
 import requests
 import json
+from requests_toolbelt.multipart.encoder import MultipartEncoder, MultipartEncoderMonitor
 
 from tqdm import tqdm
 
@@ -36,6 +37,9 @@ class PyMailCloudError(Exception):
     class NotImplementedError(Exception):
         def __init__(self, message="The developer wants to sleep"):
             super(PyMailCloudError.NotImplementedError, self).__init__(message)
+    class FileSizeError(Exception):
+        def __init__(self, message="The file is bigger than 2 GB"):
+            super(PyMailCloudError.FileSizeError, self).__init__(message)
 
 
 class PyMailCloud:
@@ -47,6 +51,7 @@ class PyMailCloud:
         self.login = login
         self.password = password
         self.downloadSource = None
+        self.uploadTarget = None
         self.__recreate_token()
 
     def __get_download_source(self):
@@ -58,7 +63,8 @@ class PyMailCloud:
             raise PyMailCloudError.NetworkError
         # print(json.loads(dispatcher.content.decode("utf-8")))
         self.downloadSource = json.loads(dispatcher.content.decode("utf-8"))['body']['get'][0]['url']
-        print('Download source: {}'.format(self.downloadSource))
+        self.uploadTarget = json.loads(dispatcher.content.decode("utf-8"))['body']['upload'][0]['url']
+        print('Acquired CDN Node')
 
     def __recreate_token(self):
         loginResponse = self.session.post("https://auth.mail.ru/cgi-bin/auth",
@@ -221,5 +227,46 @@ class PyMailCloud:
                     handle.write(data)
             print('')
 
-    def upload_file(self):
-        raise PyMailCloudError.NotImplementedError()
+
+
+    def upload_callback(self, monitor, progress):
+        #print('Length: {}, read: {}'.format(monitor.len, monitor.bytes_read))
+        progress.total = monitor.len
+        progress.update(8192)
+        pass
+
+    def upload_files(self, fileslist):
+        path = ''
+        progress = tqdm(unit='B')
+        for file in fileslist:
+            progress.desc = file['filename']
+            try:
+                f = open(file['filename'], 'rb')
+            except FileNotFoundError:
+                print("File not found: {}".format(file['filename']))
+                break
+            files = {'file': f}
+
+            if 'path' not in file: path = '/'
+            else: path = file['path']
+            destination = path + os.path.basename(file['filename'])
+            if os.path.getsize(file['filename']) > 1024 * 1024 * 1024 * 2:
+                raise PyMailCloudError.FileSizeError
+            monitor = MultipartEncoderMonitor.from_fields(
+                fields={'file': ('filename', f, 'application/octet-stream')},
+                callback=lambda monitor: self.upload_callback(monitor, progress))
+            upload_response = self.session.post(self.uploadTarget, data=monitor,
+                              headers={'Content-Type': monitor.content_type})
+            if upload_response.status_code is not 200:
+                raise PyMailCloudError.NetworkError
+
+            hash, filesize = upload_response.content.decode("utf-8").split(';')[0], upload_response.content.decode("utf-8").split(';')[1][:-2]
+            response = self.session.post("https://cloud.mail.ru/api/v2/file/add",  # "http://httpbin.org/post",
+                                         data={
+                                             "token": self.token,
+                                             "home": destination,
+                                             "conflict": 'rename',
+                                             "hash": hash,
+                                             "size": filesize,
+                                         })
+            return json.dumps(response.json(), sort_keys=True, indent=3, ensure_ascii=False)

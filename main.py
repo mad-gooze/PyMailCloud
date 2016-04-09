@@ -10,7 +10,17 @@ try:
 
     #print(mail_cloud.get_folder_contents('/'))
     #print(mail_cloud.get_subfolders('/'))
-    mail_cloud.download_folder_content('/MyFolder2')
+    #mail_cloud.download_folder_content('/MyFolder2')
+    print(mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}]))
+
+
+    '''
+    {
+   "body": "overquota",
+   "email": "test-cloud-api@mail.ru",
+   "status": 507,
+   '''
+    #mail_cloud.upload_files(['C:\Fallout 4\Data\Fallout4 - Voices.ba2'])
 
     #publicLink = mail_cloud.get_public_link(u"/Берег.jpg")
     #print (publicLink)
