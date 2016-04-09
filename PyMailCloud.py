@@ -240,7 +240,11 @@ class PyMailCloud:
         progress = tqdm(unit='B')
         for file in fileslist:
             progress.desc = file['filename']
-            f = open(file['filename'], 'rb')
+            try:
+                f = open(file['filename'], 'rb')
+            except FileNotFoundError:
+                print("File not found: {}".format(file['filename']))
+                break
             files = {'file': f}
 
             if 'path' not in file: path = '/'

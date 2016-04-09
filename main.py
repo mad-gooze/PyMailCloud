@@ -11,13 +11,8 @@ try:
     #print(mail_cloud.get_folder_contents('/'))
     #print(mail_cloud.get_subfolders('/'))
     #mail_cloud.download_folder_content('/MyFolder2')
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
-    mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}])
+    print(mail_cloud.upload_files([{'filename': "W:\Crysis 2008-09-24 13-37-17-50.mkv", 'path': '/test/'}]))
+
 
     '''
     {
