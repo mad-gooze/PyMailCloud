@@ -72,7 +72,7 @@ class PyMailCloud:
                                               "page": "http://cloud.mail.ru/",
                                               "Login": self.login,
                                               "Password": self.password
-                                          },
+                                          },verify=False
                                           )
         # success?
         if loginResponse.status_code == requests.codes.ok and loginResponse.history:
@@ -256,7 +256,7 @@ class PyMailCloud:
                 fields={'file': ('filename', f, 'application/octet-stream')},
                 callback=lambda monitor: self.upload_callback(monitor, progress))
             upload_response = self.session.post(self.uploadTarget, data=monitor,
-                              headers={'Content-Type': monitor.content_type})
+                              headers={'Content-Type': monitor.content_type},verify=False)
             if upload_response.status_code is not 200:
                 raise PyMailCloudError.NetworkError
 
