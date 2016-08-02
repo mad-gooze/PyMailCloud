@@ -270,3 +270,15 @@ class PyMailCloud:
                                              "size": filesize,
                                          })
             return json.dumps(response.json(), sort_keys=True, indent=3, ensure_ascii=False)
+
+    def delete_files(self, fileslist):
+        path = ''
+        progress = tqdm(unit='B')
+        for file in fileslist:
+            response = self.session.post("https://cloud.mail.ru/api/v2/file/remove",  # "http://httpbin.org/post",
+                                         data={
+                                             "token": self.token,
+                                             "home": file['filename'],
+                                             "hash": hash,
+                                         })
+            return json.dumps(response.json(), sort_keys=True, indent=3, ensure_ascii=False)
