@@ -57,3 +57,10 @@ Returns the JSON response from the cloud
 Rises an exception if a file is larger than 2 GB
 TODO: Check for quota before uploading
 
+### PyMailCloud.delete_files(filenamelist)
+*filenamelist* - list of dicts containing 'filename'.
+
+Delete all files inside the list. Files should be passed with the full path inside the cloud.
+
+Returns the JSON response from the cloud
+
